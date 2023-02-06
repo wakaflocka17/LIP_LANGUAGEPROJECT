@@ -4,7 +4,7 @@ type ide = string (* Ide -> name variable *)
 type expr =
   | True
   | False
-  | Const of int     
+  | Const of int  (* n value *)   
   | Not of expr
   | And of expr * expr
   | Or of expr * expr
@@ -40,8 +40,8 @@ type cmd =
   | Seq of cmd * cmd
   | Repeat of cmd
   | If of expr * cmd * cmd
-  | Block of dv * cmd                     (* Block containing declarations of variables and cmd*)
-  | Call of ide * pa                      (* Calling a procedure *)
+  | Block of dv * cmd                     (* Block containing declarations of variables and cmd *)
+  | Call_proc of ide * pa                      (* Calling a procedure *)
 
 (* Dichiarazioni Procedure *)
 type dp = 
