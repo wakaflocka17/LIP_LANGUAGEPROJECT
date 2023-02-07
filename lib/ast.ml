@@ -18,7 +18,7 @@ type expr =
 
 (* Parametri formali *)
 type pf = 
-  | Val of ide  (* Parameters passed by value *)
+  | Val of ide  (* Parameters passed by value *) 
   | Ref of ide  (* Parameters passed by reference *)
 
 (* Parametri attuale *)
@@ -27,7 +27,7 @@ type pa = Pa of expr
 (* Dichiarazioni Variabili *)
 type dv = 
   | Nullvar
-  | Seq_dv of dv * dv            (* Multiple declarations *)
+  | Seq_dv of dv * dv           (* Multiple declarations *)
   | Var_decl of ide              (* Declaration of a variable *)
   | Array_decl of ide * int      (* Declaration of an array *)
 
@@ -37,7 +37,7 @@ type cmd =
   | Break
   | Assign of ide * expr                  (* Assigning a expr to a variable *)
   | Assign_cell of ide * expr * expr      (* Assigning a expr to an element of an array*)
-  | Seq of cmd * cmd
+  | Seq of cmd * cmd 
   | Repeat of cmd
   | If of expr * cmd * cmd
   | Block of dv * cmd                     (* Block containing declarations of variables and cmd *)
