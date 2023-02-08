@@ -1,0 +1,43 @@
+type token =
+    VAL
+  | TRUE
+  | THEN
+  | SKIP
+  | SEQ
+  | RSQUARE
+  | RPAREN
+  | REPEAT
+  | REF
+  | RBRACE
+  | PROC
+  | PLUS
+  | OR
+  | NOT
+  | MUL
+  | MINUS
+  | LSQUARE
+  | LPAREN
+  | LEQ
+  | LBRACE
+  | INT
+  | IF
+  | IDE of string
+  | FOREVER
+  | FALSE
+  | EQ
+  | EOF
+  | ELSE
+  | CONST of string
+  | BREAK
+  | ASSIGN
+  | ARRAY
+  | AND
+val menhir_begin_marker : int
+val xv_prog : Ast.program
+val xv_pf : Ast.pf
+val xv_pa : Ast.pa
+val xv_expr : Ast.expr
+val xv_dv : Ast.dv
+val xv_dp : Ast.dp
+val xv_cmd : Ast.cmd
+val menhir_end_marker : int

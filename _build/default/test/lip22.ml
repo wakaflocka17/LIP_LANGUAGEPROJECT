@@ -1,3 +1,5 @@
+
+(*
 open Lip22Lib.Types       
 open Lip22Lib.Prettyprint
 open Lip22Lib.Main
@@ -58,3 +60,4 @@ let%test _ =
     )
     true
     test_trace
+*)

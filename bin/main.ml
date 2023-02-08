@@ -1,7 +1,9 @@
+(*
 open Lip22Lib.Types
 open Lip22Lib.Prettyprint
 open Lip22Lib.Main
        
+
 (* read file, and output it to a string *)
 
 let read_file filename =
@@ -36,3 +38,4 @@ match Array.length(Sys.argv) with
         | s -> s |> parse |> fun p -> trace n p |> print_trace (vars_of_prog p))
 (* wrong usage *)      
 | _ -> failwith "Usage: dune exec lip22 n_steps [file]"
+*)

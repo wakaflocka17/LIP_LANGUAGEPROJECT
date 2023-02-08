@@ -6,6 +6,9 @@ module Ast = Lip22Lib__Ast
 (** @canonical Lip22Lib.Lexer *)
 module Lexer = Lip22Lib__Lexer
 
+(** @canonical Lip22Lib.Main *)
+module Main = Lip22Lib__Main
+
 (** @canonical Lip22Lib.Parser *)
 module Parser = Lip22Lib__Parser
 

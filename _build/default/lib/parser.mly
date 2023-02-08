@@ -45,8 +45,8 @@ open Ast
 
 (* Associativity and precedence *)
 %left SEQ
-%nonassoc PROC  (* DISCLAIMER MIGHT BE WRONG !!!!!!!!!!!!!!!!!!!!!*)
-%nonassoc ELSE REPEAT
+(* %nonassoc PROC  DISCLAIMER MIGHT BE WRONG !!!!!!!!!!!!!!!!!!!!!*)
+%nonassoc ELSE (* REPEAT *)
 %left OR
 %left AND
 %nonassoc NOT
@@ -59,11 +59,25 @@ open Ast
 %% (* Grammar *)
 
 prog:
-    | decl_var = dv ; decl_params = dp ; c = cmd ; EOF { Prog(decl_var, decl_params, c) }
+    | decl_var = dv; SEQ; decl_params = dp; SEQ; c = cmd ; EOF { Prog(decl_var, decl_params, c) }
+    | decl_var = dv; SEQ; c = cmd ; EOF { Prog(decl_var, Nullproc, c) }
 ;
 
-expr: 
-    ...
+expr:
+    | TRUE { True }
+    | FALSE { False }
+    | n = CONST { Const(int_of_string n) }
+    | NOT; e=expr { Not e }
+    | e1=expr; AND; e2=expr { And(e1,e2) }
+    | e1=expr; OR; e2=expr { Or(e1,e2) }
+    | e1=expr; PLUS; e2=expr { Add(e1,e2) }
+    | e1=expr; MINUS; e2=expr { Sub(e1,e2) }
+    | e1=expr; MUL; e2=expr { Mul(e1,e2) }
+    | e1=expr; EQ; e2=expr { Eq(e1,e2) }
+    | e1=expr; LEQ; e2=expr { Leq(e1,e2) }
+    | x = IDE { Var(x) }
+    | a = IDE; LSQUARE; e = expr; RSQUARE; { Array(a ,e) }
+    | LPAREN; e=expr; RPAREN { e }
 ;
 
 dv:
@@ -73,10 +87,10 @@ dv:
     | { Nullvar }
 ;
 
+
 dp:
-    | PROC; f = IDE; LPAREN; formal_p = pf; RPAREN; LBRACE; c = cmd; RBRACE; { Proc_decl(f, formal_p, c) }
-    | dp1 = dp; dp2 = dp; { Seq_dp(dp1, dp2) } (* might have to add %prec PROC *)
-    | { Nullproc }
+    | PROC; f = IDE; LPAREN; formal_p = pf; RPAREN; LBRACE; c = cmd; RBRACE; { Proc_decl(f, formal_p, c) }    
+    | dp1 = dp; dp2 = dp; { Seq_dp(dp1, dp2) }
 ;
 
 pf: 
@@ -88,7 +102,16 @@ pa:
     | e = expr; { Pa(e) }
 
 cmd:
-    ...
+    | SKIP { Skip }
+    | BREAK { Break }
+    | x = IDE; ASSIGN; e = expr; { Assign(x, e) }
+    | a = IDE; LSQUARE; e1 = expr; RSQUARE; ASSIGN; e2 = expr; { Assign_cell(a, e1, e2) } 
+    | c1 = cmd; SEQ; c2 = cmd;{ Seq(c1, c2) }
+    | REPEAT; c = cmd; FOREVER; { Repeat(c) }
+    | IF; e = expr; THEN; c1 = cmd; ELSE; c2 = cmd; { If(e, c1, c2) }
+    | LBRACE; d = dv; SEQ; c = cmd; RBRACE; { Block(d, c) }
+    | LBRACE; c = cmd; RBRACE; { Block(Nullvar, c) }
+    | f = IDE; LPAREN; p = pa; RPAREN; { Call_proc(f, p) }
 ;
 
 

@@ -6,3 +6,6 @@ lib: [
 bin: [
   "_build/install/default/bin/lip22"
 ]
+doc: [
+  "_build/install/default/doc/lip22/README.md"
+]
