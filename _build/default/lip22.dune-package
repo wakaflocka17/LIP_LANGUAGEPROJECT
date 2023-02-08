@@ -1,0 +1,4 @@
+(lang dune 3.5)
+(name lip22)
+(sections (lib .) (bin ../../bin) (doc ../../doc/lip22))
+(files (lib (META dune-package opam)) (bin (lip22)) (doc (README.md)))
