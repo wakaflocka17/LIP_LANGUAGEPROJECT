@@ -45,8 +45,8 @@ open Ast
 
 (* Associativity and precedence *)
 %left SEQ
-(* %nonassoc PROC  DISCLAIMER MIGHT BE WRONG !!!!!!!!!!!!!!!!!!!!!*)
-%nonassoc ELSE (* REPEAT *)
+(* %nonassoc PROC  dune says its irrelevant*)
+%nonassoc ELSE (* REPEAT idem^^^^*)
 %left OR
 %left AND
 %nonassoc NOT

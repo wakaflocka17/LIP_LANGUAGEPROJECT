@@ -2,7 +2,7 @@ open Ast
     
 type loc = int
 
-type envval = IVar of loc | IFun of ide * cmd * expr
+type envval = IVar of loc | IArr of loc * int | IProc of ide * pf * cmd
 type memval = int
 
 type env = ide -> envval
