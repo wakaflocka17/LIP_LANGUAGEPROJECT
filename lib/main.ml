@@ -94,6 +94,29 @@ let botmem = fun l -> failwith ("location " ^ string_of_int l ^ " undefined")
     
 let bind f x v = fun x' -> if x'=x then v else f x'
 
+let rec sem_decl_dv (e,l) = function
+    Nullvar -> (e,l)
+  | Var_decl(x) ->  let e' = bind e x (IVar l) in (e',l+1)
+  | Array_decl(a, dim) -> let e' = bind e a (IArr (l, dim)) in (e', l+dim)
+  | Seq_dv(dv1, dv2) -> 
+      let (e', l') = sem_decl_dv (e, l) dv1 in sem_decl_dv (e', l') dv2
+
+let rec sem_decl_dv_spec (e, l) lmem d = 
+  if l = lmem then sem_decl_dv (e, l) d
+  else match d with
+  Nullvar -> (e,l)
+  | Var_decl(x) ->  let e' = bind e x (IVar lmem) in (e',l)
+  | Array_decl(a, dim) -> let e' = bind e a (IArr (lmem, dim)) in (e', l)
+  | Seq_dv(dv1, dv2) -> 
+      let (e', l') = sem_decl_dv_spec (e, l) lmem dv1 in sem_decl_dv_spec (e', l') lmem dv2
+
+
+let rec sem_decl_dp e = function
+    | Nullproc -> e
+    | Proc_decl(f, pf, c) -> let e' = bind e f (IProc(pf, c)) in e'
+    | Seq_dp(dp1, dp2) -> 
+      let e' = sem_decl_dp e dp1 in sem_decl_dp e' dp2
+
 let rec trace1_expr st = function
   | Var x -> (Const(apply st x), st)
   | Array(a, Const(i)) -> (Const(apply_arr st a i), st)
@@ -124,9 +147,28 @@ let rec trace1_expr st = function
   | Leq(e1,e2) -> let (e1',st') = trace1_expr st e1 in (Leq(e1',e2),st')
   | _ -> raise NoRuleApplies
 
+  
+(*Utils functions, might not need them
+and trace_rec_expr st e = try
+  let (e', st') = trace1_expr st e
+  in e::(trace_rec_expr st' e')
+with NoRuleApplies -> [e]
+
+and get_last_trace t = match t with
+  | [] -> failwith "No trace avaiable"
+  | t'::[] -> t'
+  | t'::l -> get_last_trace l
+
+and get_expr_val st e =
+  let t = trace_rec_expr st e in  
+  let value = get_last_trace t in 
+  match value with
+    | Const(n) -> n
+    | _ -> failwith "The expression does not evaluate correctly"
+*)
 
 and trace1_cmd = function
-    St _
+  | St _
   | Br _ -> raise NoRuleApplies
   | Cmd(c,st) -> match c with
         Skip -> St st
@@ -161,20 +203,17 @@ and trace1_cmd = function
         | St st1 -> Cmd(Repeat(c), st1)
         | Cmd(c', st1) -> Cmd(Seq(c', Repeat(c)), st1)
       )
-      | 
+      | Block(dv, c) ->
+          let (e', l') = sem_decl_dv (topenv st, getloc st) dv in
+          let st' = (e'::(getenv st), getmem st, l') in
+          (match trace1_cmd (Cmd(c, st')) with
+             Cmd(c', st1) -> Cmd(Block(Nullvar, c'), st1)
+            | St st1
+            | Br st1 -> St(popenv st', getmem st1, getloc st1)
+          )
+      | Call_proc(f, Pa(e)) ->
+      
 
-let rec sem_decl_dv (e,l) = function
-    Nullvar -> (e,l)
-  | Var_decl(x) ->  let e' = bind e x (IVar l) in (e',l+1)
-  | Array_decl(a, dim) -> let e' = bind e a (IArr (l, dim)) in (e', l+dim)
-  | Seq_dv(dv1, dv2) -> 
-      let (e', l') = sem_decl_dv (e, l) dv1 in sem_decl_dv (e', l') dv2
-
-let rec sem_decl_dp e = function
-    | Nullproc -> e
-    | Proc_decl(f, pf, c) -> let e' = bind e f (IProc(pf, c)) in e'
-    | Seq_dp(dp1, dp2) -> 
-      let e' = sem_decl_dp e dp1 in sem_decl_dp e' dp2
 
 let rec trace_rec (n : int) t =
   if n<=0 then [t]

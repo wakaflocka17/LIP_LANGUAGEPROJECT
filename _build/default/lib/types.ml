@@ -24,7 +24,7 @@ let getenv (el,_,_) = el
 let getmem (_,m,_) = m
 let getloc (_,_,l) = l
   
-type conf = St of state | Cmd of cmd * state
+type conf = St of state | Cmd of cmd * state | Br of state
 
 exception TypeError of string
 exception UnboundVar of ide

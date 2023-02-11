@@ -2,8 +2,13 @@ open Ast
 open Types
 
 let apply st x = match topenv st x with
-IVar l -> getmem st l
-| _ -> failwith "apply error"
+    IVar l -> getmem st l
+  | _ -> failwith "apply error"
+
+let apply_arr st a i = match topenv st a with
+  | IArr(l, dim) when i < dim -> getmem st (l+i)
+  | IArr(_, dim) -> failwith ("OOB: trying to access array " ^ a ^ " with dim " ^ string_of_int dim ^ " with index " ^ string_of_int i)
+  | _ -> failwith "error with apply_arr"
 
 let parse (s : string) : program =
   let lexbuf = Lexing.from_string s in
@@ -91,6 +96,8 @@ let bind f x v = fun x' -> if x'=x then v else f x'
 
 let rec trace1_expr st = function
   | Var x -> (Const(apply st x), st)
+  | Array(a, Const(i)) -> (Const(apply_arr st a i), st)
+  | Array(a ,e) -> let (e', st') = trace1_expr st e in (Array(a, e'), st')
   | Not(True) -> (False,st)
   | Not(False) -> (True,st)
   | Not(e) -> let (e',st') = trace1_expr st e in (Not(e'),st')
@@ -115,43 +122,46 @@ let rec trace1_expr st = function
   | Leq(Const(n1),Const(n2)) -> if n1<=n2 then (True,st) else (False,st)
   | Leq(Const(n1),e2) -> let (e2',st') = trace1_expr st e2 in (Leq(Const(n1),e2'),st')
   | Leq(e1,e2) -> let (e1',st') = trace1_expr st e1 in (Leq(e1',e2),st')
-  | Call(f,Const(n)) -> (match (topenv st) f with
-        IFun(x,c,er) ->
-        let l = getloc st in
-        let env' = bind (topenv st) x (IVar l) in
-        let mem' = bind (getmem st) l n in
-        let st' = (env'::(getenv st), mem', l+1) in
-        (CallExec(c,er),st')
-      | _ -> raise (TypeError "Call of a non-function"))
-  | Call(f,e) -> let (e',st') = trace1_expr st e in (Call(f,e'),st')
-  | CallExec(c,e) -> (match trace1_cmd (Cmd(c,st)) with
-      St st' -> (CallRet(e),st')
-    | Cmd(c',st') -> (CallExec(c',e),st'))
-  | CallRet(Const(n)) -> let st' = (popenv st, getmem st, getloc st) in (Const(n),st')
-  | CallRet(e) -> let (e',st') = trace1_expr st e in (CallRet(e'),st')
   | _ -> raise NoRuleApplies
 
+
 and trace1_cmd = function
-    St _ -> raise NoRuleApplies
+  | St _
+  | Br _ -> raise NoRuleApplies
   | Cmd(c,st) -> match c with
-      Skip -> St st
+        Skip -> St st
+
       | Break -> Br st
+
       | Assign(x,Const(n)) -> (match topenv st x with
           IVar l -> St (getenv st, bind (getmem st) l n, getloc st)
         | _ -> failwith ("Error on assignment to variable" ^ x))
       | Assign(x,e) -> let (e',st') = trace1_expr st e in Cmd(Assign(x,e'),st')
+
+
       | Assign_cell(a, Const(i), Const(n)) -> ( match topenv st a with
-          | IArr(l, dim) when i < dim -> St (getenv, bind (getmem st) (l+i) n, )
+          | IArr(l, dim) when i < dim -> St (getenv st, bind (getmem st) (l+i) n, getloc st)
+          | _ -> failwith ("Error on assignment to array " ^ a ^ " on location " ^ string_of_int i ^ " out of bound")
       )
+      | Assign_cell(a, Const(i), e2) -> let (e2', st') = trace1_expr st e2 in Cmd(Assign_cell(a, Const(i), e2'), st')
+      | Assign_cell(a, e1 ,e2) -> let (e1', st') = trace1_expr st e1 in Cmd(Assign_cell(a, e1', e2), st')
+
+
       | Seq(c1,c2) -> (match trace1_cmd (Cmd(c1,st)) with
-            St st1 -> Cmd(c2,st1)
-            | Br st -> St st
+              St st1 -> Cmd(c2,st1)
+            | Br st1 -> St st1
             | Cmd(c1',st1) -> Cmd(Seq(c1',c2),st1))
+        
       | If(True,c1,_) -> Cmd(c1,st)
       | If(False,_,c2) -> Cmd(c2,st)
       | If(e,c1,c2) -> let (e',st') = trace1_expr st e in Cmd(If(e',c1,c2),st')
-      | While(e,c) -> Cmd(If(e,Seq(c,While(e,c)),Skip),st)
-  
+
+      |Repeat(c) -> (match trace1_cmd (Cmd(c, st)) with
+          Br st1 -> Cmd(Skip, st1)
+        | St st1 -> Cmd(Repeat(c), st1)
+        | Cmd(c', st1) -> Cmd(Seq(c', Repeat(c)), st1)
+      )
+      
 
 let rec sem_decl_dv (e,l) = function
     Nullvar -> (e,l)
