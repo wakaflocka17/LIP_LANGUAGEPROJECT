@@ -156,9 +156,12 @@ and trace1_cmd = function
       | If(False,_,c2) -> Cmd(c2,st)
       | If(e,c1,c2) -> let (e',st') = trace1_expr st e in Cmd(If(e',c1,c2),st')
 
-
-      |
-  
+      |Repeat(c) -> (match trace1_cmd (Cmd(c, st)) with
+          Br st1 -> Cmd(Skip, st1)
+        | St st1 -> Cmd(Repeat(c), st1)
+        | Cmd(c', st1) -> Cmd(Seq(c', Repeat(c)), st1)
+      )
+      | 
 
 let rec sem_decl_dv (e,l) = function
     Nullvar -> (e,l)
