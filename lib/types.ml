@@ -2,7 +2,7 @@ open Ast
     
 type loc = int
 
-type envval = IVar of loc | IArr of loc * int | IProc of ide * pf * cmd
+type envval = IVar of loc | IArr of loc * int | IProc of pf * cmd
 type memval = int
 
 type env = ide -> envval
@@ -24,7 +24,8 @@ let getenv (el,_,_) = el
 let getmem (_,m,_) = m
 let getloc (_,_,l) = l
   
-type conf = St of state | Cmd of cmd * state
+type conf = St of state | Cmd of cmd * state | Br of state
 
 exception TypeError of string
 exception UnboundVar of ide
+exception NoRuleApplies

@@ -2,7 +2,7 @@ open Ast
     
 type loc = int
 
-type envval = IVar of loc | IArr of loc * int | IProc of ide * pf * cmd
+type envval = IVar of loc | IArr of loc * int | IProc of pf * cmd
 type memval = int
 
 type env = ide -> envval
@@ -28,3 +28,4 @@ type conf = St of state | Cmd of cmd * state
 
 exception TypeError of string
 exception UnboundVar of ide
+exception NoRuleApplies

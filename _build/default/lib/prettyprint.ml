@@ -60,7 +60,7 @@ let rec string_of_dp = function
 let string_of_env1 s x = match topenv s x with
   | IVar l -> string_of_int l ^ "/" ^ x
   | IArr (l, dim) -> string_of_int l ^ "[" ^ string_of_int dim ^ "]" ^ x
-  | IProc(_,_,_) -> "<fun>/" ^ x
+  | IProc(_,_) -> "<fun>/" ^ x
 
     
 let string_of_env (s : state) vars =
@@ -94,7 +94,7 @@ let rec getlocs e = function
   | x::dom -> try (match e x with
     | IVar l -> l::(getlocs e dom)
     | IArr(l, dim) -> getArrLocs l dim @ getlocs e dom
-    | IProc(_,_,_) -> [])
+    | IProc(_,_) -> [])
     with _ -> getlocs e dom
 
 
