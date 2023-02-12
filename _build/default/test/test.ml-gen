@@ -3,5 +3,8 @@
 (** @canonical Test.Lip22 *)
 module Lip22 = Test__Lip22
 
+(** @canonical Test.Lip22_bart *)
+module Lip22_bart = Test__Lip22_bart
+
 module Test = struct end
 [@@deprecated "this module is shadowed"]

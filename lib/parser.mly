@@ -61,6 +61,7 @@ open Ast
 prog:
     | decl_var = dv; SEQ; decl_params = dp; SEQ; c = cmd ; EOF { Prog(decl_var, decl_params, c) }
     | decl_var = dv; SEQ; c = cmd ; EOF { Prog(decl_var, Nullproc, c) }
+    | c = cmd; EOF { Prog(Nullvar, Nullproc, c) }
 ;
 
 expr:
@@ -109,7 +110,8 @@ cmd:
     | c1 = cmd; SEQ; c2 = cmd;{ Seq(c1, c2) }
     | REPEAT; c = cmd; FOREVER; { Repeat(c) }
     | IF; e = expr; THEN; c1 = cmd; ELSE; c2 = cmd; { If(e, c1, c2) }
-    | LBRACE; d = dv; SEQ; c = cmd; RBRACE; { Block(d, c) }
-    | LBRACE; c = cmd; RBRACE; { Block(Nullvar, c) }
+    | LBRACE; d = dv; SEQ; c = cmd; RBRACE; { Decl(d, c) }
+    | LBRACE; c = cmd; RBRACE; { Decl(Nullvar, c) }
     | f = IDE; LPAREN; p = pa; RPAREN; { Call_proc(f, p) }
+    | LPAREN; c = cmd; RPAREN; {c}
 ;

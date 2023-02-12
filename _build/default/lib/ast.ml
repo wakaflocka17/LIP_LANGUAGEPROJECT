@@ -40,8 +40,9 @@ type cmd =
   | Seq of cmd * cmd 
   | Repeat of cmd
   | If of expr * cmd * cmd
-  | Block of dv * cmd                     (* Block containing declarations of variables and cmd *)
+  | Decl of dv * cmd                     (* Block containing declarations of variables and cmd *)
   | Call_proc of ide * pa                      (* Calling a procedure *)
+  | Block of cmd                          (* runtime-only: block of cmds*)
 
 (* Dichiarazioni Procedure *)
 type dp = 

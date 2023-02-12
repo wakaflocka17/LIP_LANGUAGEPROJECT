@@ -3,12 +3,12 @@ open Types
 
 let apply st x = match topenv st x with
     IVar l -> getmem st l
-  | _ -> failwith "apply error"
+  | _ -> raise (TypeError "apply error")
 
 let apply_arr st a i = match topenv st a with
   | IArr(l, dim) when i < dim -> getmem st (l+i)
-  | IArr(_, dim) -> failwith ("OOB: trying to access array " ^ a ^ " with dim " ^ string_of_int dim ^ " with index " ^ string_of_int i)
-  | _ -> failwith "error with apply_arr"
+  | IArr(_, dim) -> raise (OOB("OOB: trying to access array " ^ a ^ " with dim " ^ string_of_int dim ^ " with index " ^ string_of_int i))
+  | _ -> raise (TypeError "apply_arr error")
 
 let parse (s : string) : program =
   let lexbuf = Lexing.from_string s in
@@ -89,9 +89,8 @@ let rec eval_expr st = function
 
 exception NoRulesApplies
 
-let botenv = fun x -> failwith ("variable " ^ x ^ " unbound")
-let botmem = fun l -> failwith ("location " ^ string_of_int l ^ " undefined")
-    
+let botenv = fun x -> raise (UnboundVar x)
+let botmem = fun l -> raise (UnboundLoc l)
 let bind f x v = fun x' -> if x'=x then v else f x'
 
 let rec sem_decl_dv (e,l) = function
@@ -177,13 +176,13 @@ and trace1_cmd = function
 
       | Assign(x,Const(n)) -> (match topenv st x with
           IVar l -> St (getenv st, bind (getmem st) l n, getloc st)
-        | _ -> failwith ("Error on assignment to variable" ^ x))
+        | _ -> raise (TypeError ("Error on assignment to variable" ^ x)))
       | Assign(x,e) -> let (e',st') = trace1_expr st e in Cmd(Assign(x,e'),st')
 
 
       | Assign_cell(a, Const(i), Const(n)) -> ( match topenv st a with
           | IArr(l, dim) when i < dim -> St (getenv st, bind (getmem st) (l+i) n, getloc st)
-          | _ -> failwith ("Error on assignment to array " ^ a ^ " on location " ^ string_of_int i ^ " out of bound")
+          | _ -> raise (TypeError ("Error on assignment to array " ^ a ^ " on location " ^ string_of_int i ^ " out of bound"))
       )
       | Assign_cell(a, Const(i), e2) -> let (e2', st') = trace1_expr st e2 in Cmd(Assign_cell(a, Const(i), e2'), st')
       | Assign_cell(a, e1 ,e2) -> let (e1', st') = trace1_expr st e1 in Cmd(Assign_cell(a, e1', e2), st')
@@ -203,18 +202,46 @@ and trace1_cmd = function
         | St st1 -> Cmd(Repeat(c), st1)
         | Cmd(c', st1) -> Cmd(Seq(c', Repeat(c)), st1)
       )
-      | Block(dv, c) ->
+      | Decl(dv, c) ->
           let (e', l') = sem_decl_dv (topenv st, getloc st) dv in
           let st' = (e'::(getenv st), getmem st, l') in
-          (match trace1_cmd (Cmd(c, st')) with
-             Cmd(c', st1) -> Cmd(Block(Nullvar, c'), st1)
+          Cmd(Block(c), st')
+
+      | Block(c) -> (match trace1_cmd (Cmd(c, st)) with
+             Cmd(c', st1) -> Cmd(Block(c'), st1)
             | St st1
-            | Br st1 -> St(popenv st', getmem st1, getloc st1)
-          )
-      | Call_proc(f, Pa(e)) ->
+            | Br st1 -> St(popenv st, getmem st1, getloc st1)
+            )
       
+      | Call_proc(f, Pa(Const(n))) -> (match topenv st f with
+          | IProc(pf, c) -> (match pf with
+            | Val x ->
+                 let l = getloc st in
+                 let (e', l') = sem_decl_dv (topenv st, l) (Var_decl(x)) in
+                 let mem' = bind (getmem st) l n in 
+                 Cmd(Block(c), (e'::getenv st, mem', l'))
+                 
+            | Ref x -> raise (ConstByRef (x, n)) 
+          )
+          | _ -> raise (TypeError "Cannot call a non callable object") 
+      )
 
-
+      | Call_proc(f, Pa(Var(z))) -> (match topenv st f with
+          | IProc(pf, c) -> (match pf with
+            | Val _ ->
+                 let val_z = apply st z in 
+                 Cmd(Call_proc(f, Pa(Const(val_z))), st)
+                 
+            | Ref x ->
+              let lx = topenv st z in 
+              let e' = bind (topenv st) x lx in 
+              Cmd(Block(c), (e'::getenv st, getmem st, getloc st))
+          )
+          | _ -> raise (TypeError "Cannot call a non callable object") 
+      )
+      | Call_proc(f, Pa(e)) -> 
+        let (e', st') = trace1_expr st e in Cmd(Call_proc(f, Pa(e')), st')
+      
 let rec trace_rec (n : int) t =
   if n<=0 then [t]
   else try

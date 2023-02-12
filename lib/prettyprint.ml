@@ -1,5 +1,6 @@
 open Ast
 open Types
+open Main
 
 let string_of_val = function
   n -> string_of_int n
@@ -41,11 +42,12 @@ let rec string_of_cmd = function
   | Assign(x,e) -> x ^ ":=" ^ string_of_expr e
   | Assign_cell(a, e1, e2) -> a ^ "[" ^ string_of_expr e1 ^ "]:=" ^ string_of_expr e2
   | Seq(c1,c2) -> string_of_cmd c1 ^ "; " ^ string_of_cmd c2
-  | Repeat(c) -> "repeat" ^ string_of_cmd c ^ "forever"
+  | Repeat(c) -> "repeat " ^ string_of_cmd c ^ " forever"
   | If(e,c1,c2) -> "if " ^ string_of_expr e ^ " then " ^ string_of_cmd c1 ^ " else " ^ string_of_cmd c2
-  | Block(Nullvar, c) -> "{ " ^ string_of_cmd c ^ "}"
-  | Block(d, c) -> "{ " ^ string_of_dv d ^ "; " ^ string_of_cmd c ^ "}"
+  | Decl(Nullvar, c) -> "{ " ^ string_of_cmd c ^ "}"
+  | Decl(d, c) -> "{ " ^ string_of_dv d ^ "; " ^ string_of_cmd c ^ "}"
   | Call_proc(f, p) -> f ^ "(" ^ string_of_pa p ^ ")"
+  | Block(c) -> "{ " ^ string_of_cmd c ^ " }"
 
 let rec string_of_dp = function
   | Nullproc -> ""
@@ -57,10 +59,14 @@ let rec string_of_dp = function
   | Prog(decl_var, decl_params, c) -> string_of_dv decl_var ^ "; " ^ string_of_dp decl_params ^ "; " ^ string_of_cmd c
 
 
+let string_of_pf = function
+  | Val x -> x
+  | Ref x -> x
+
 let string_of_env1 s x = match topenv s x with
   | IVar l -> string_of_int l ^ "/" ^ x
   | IArr (l, dim) -> string_of_int l ^ "[" ^ string_of_int dim ^ "]" ^ x
-  | IProc(_,_) -> "<fun>/" ^ x
+  | IProc(pf,c) -> "(" ^ string_of_pf pf ^ ", " ^ string_of_cmd c ^ ")" ^ x
 
     
 let string_of_env (s : state) vars =
@@ -145,8 +151,9 @@ and vars_of_cmd = function
   | Seq(c1,c2) -> union (vars_of_cmd c1) (vars_of_cmd c2)
   | Repeat c -> vars_of_cmd c
   | If(e,c1,c2) -> union (vars_of_expr e) (union (vars_of_cmd c1) (vars_of_cmd c2))                 
-  | Block(dv, c) -> union (vars_of_dv dv) (vars_of_cmd c)
-  | Call_proc(f, p) -> union [f] (vars_of_pa p)         
+  | Decl(dv, c) -> union (vars_of_dv dv) (vars_of_cmd c)
+  | Call_proc(f, p) -> union [f] (vars_of_pa p) 
+  | Block(c) -> vars_of_cmd c        
 
 and vars_of_dp = function
   | Nullproc -> []
@@ -172,3 +179,13 @@ let rec last = function
   [] -> failwith "last on empty list"
 | [x] -> x
 | _::l -> last l
+
+let print_trace ps n  =
+  let p = parse ps in
+  try (
+  let t = last (trace n p) in (* actual result *)
+  print_string (ps ^ " ->* " ^ string_of_conf (vars_of_prog p) t);
+  )
+  with
+  (* generic error-handling *)
+    _ -> print_string("error for this program")
