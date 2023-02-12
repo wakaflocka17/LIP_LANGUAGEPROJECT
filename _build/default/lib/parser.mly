@@ -45,6 +45,7 @@ open Ast
 
 (* Associativity and precedence *)
 %left SEQ
+%left SEQP
 (* %nonassoc PROC  dune says its irrelevant*)
 %nonassoc ELSE (* REPEAT idem^^^^*)
 %left OR
@@ -90,8 +91,8 @@ dv:
 
 
 dp:
-    | PROC; f = IDE; LPAREN; formal_p = pf; RPAREN; LBRACE; c = cmd; RBRACE; { Proc_decl(f, formal_p, c) }    
-    | dp1 = dp; dp2 = dp; { Seq_dp(dp1, dp2) }
+    | dp1 = dp; dp2 = dp; { Seq_dp(dp1, dp2) } %prec SEQP
+    | PROC; f = IDE; LPAREN; formal_p = pf; RPAREN; LBRACE; c = cmd; RBRACE; { Proc_decl(f, formal_p, c) }
 ;
 
 pf: 

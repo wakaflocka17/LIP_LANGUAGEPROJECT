@@ -2,6 +2,7 @@
  (name lip22Lib))
 
 (menhir
- (modules parser))
+ (modules parser)
+ )
 
 (ocamllex lexer)
