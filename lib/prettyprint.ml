@@ -89,7 +89,9 @@ let rec range a b = if b<a then [] else a::(range (a+1) b);;
 let string_of_mem (m,l) =
   List.fold_left (fun str i -> str ^ (try string_of_mem1 (m,l) i ^ "," with _ -> "")) "" (range 0 (l - 1))
 
-
+let string_of_status = function
+  | Continue -> "Continue"
+  | Br -> "Break"
 
 let rec getArrLocs l dim = match dim with
 | 0 -> []
@@ -107,7 +109,7 @@ let rec getlocs e = function
 let string_of_state st dom =
   "[" ^ string_of_env st dom ^ "], " ^
   "[" ^ string_of_mem (getmem st,getloc st) ^ "]" ^ ", " ^
-  string_of_int (getloc st)
+  string_of_int (getloc st) ^ ", " ^ string_of_status (getstatus st)
 
 
   let rec union l1 l2 = match l1 with
@@ -166,7 +168,6 @@ let vars_of_prog (Prog(dv, dp, c)) = union (vars_of_dv dv) (union (vars_of_dp dp
 let string_of_conf vars = function
   St st -> string_of_state st vars
 | Cmd(c,st) -> "<" ^ string_of_cmd c ^ ", " ^ string_of_state st vars ^ ">"
-| Br st -> string_of_state st vars
 
 
 let rec string_of_trace vars = function

@@ -60,7 +60,6 @@ let%test _ =
         let t = last (trace n p) in (* actual result *)
         print_string (" ->* " ^ string_of_conf (vars_of_prog p) t);
         let b' = (match t with
-           Br st
          | St st -> Ok (apply st x) = v (* some erroneous programs print their last trace and raise and exception during apply *)
          | Cmd(_, st) -> Ok (apply st x) = v) in
         print_string (" " ^ (if b' then "[OK]" else "[NO : expected " ^ string_of_val_option v ^ "]"));

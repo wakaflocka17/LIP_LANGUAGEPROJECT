@@ -46,6 +46,7 @@ open Ast
 (* Associativity and precedence *)
 %left SEQ
 %left SEQP
+%nonassoc PROC
 (* %nonassoc PROC  dune says its irrelevant*)
 %nonassoc ELSE (* REPEAT idem^^^^*)
 %left OR

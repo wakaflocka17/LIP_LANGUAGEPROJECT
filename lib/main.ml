@@ -167,21 +167,20 @@ and get_expr_val st e =
 *)
 
 and trace1_cmd = function
-  | St _
-  | Br _ -> raise NoRuleApplies
+  | St _ -> raise NoRuleApplies
   | Cmd(c,st) -> match c with
         Skip -> St st
 
-      | Break -> Br st
+      | Break -> St (getenv st, getmem st, getloc st, Br)
 
       | Assign(x,Const(n)) -> (match topenv st x with
-          IVar l -> St (getenv st, bind (getmem st) l n, getloc st)
+          IVar l -> St (getenv st, bind (getmem st) l n, getloc st, Continue)
         | _ -> raise (TypeError ("Error on assignment to variable" ^ x)))
       | Assign(x,e) -> let (e',st') = trace1_expr st e in Cmd(Assign(x,e'),st')
 
 
       | Assign_cell(a, Const(i), Const(n)) -> ( match topenv st a with
-          | IArr(l, dim) when i < dim -> St (getenv st, bind (getmem st) (l+i) n, getloc st)
+          | IArr(l, dim) when i < dim -> St (getenv st, bind (getmem st) (l+i) n, getloc st, Continue)
           | _ -> raise (TypeError ("Error on assignment to array " ^ a ^ " on location " ^ string_of_int i ^ " out of bound"))
       )
       | Assign_cell(a, Const(i), e2) -> let (e2', st') = trace1_expr st e2 in Cmd(Assign_cell(a, Const(i), e2'), st')
@@ -189,8 +188,10 @@ and trace1_cmd = function
 
 
       | Seq(c1,c2) -> (match trace1_cmd (Cmd(c1,st)) with
-              St st1 -> Cmd(c2,st1)
-            | Br st1 -> St st1
+            | St (envl, mem, l, Br) -> St (envl, mem, l, Br)
+            | Cmd(Repeat(c), (envl, mem, l, Br)) -> Cmd(Repeat(c), (envl, mem, l, Br))
+            | Cmd(_, (envl, mem, l, Br)) -> St (envl, mem, l, Br) 
+            | St st1 -> Cmd(c2,st1)
             | Cmd(c1',st1) -> Cmd(Seq(c1',c2),st1))
         
       | If(True,c1,_) -> Cmd(c1,st)
@@ -198,19 +199,19 @@ and trace1_cmd = function
       | If(e,c1,c2) -> let (e',st') = trace1_expr st e in Cmd(If(e',c1,c2),st')
 
       |Repeat(c) -> (match trace1_cmd (Cmd(c, st)) with
-          Br st1 -> Cmd(Skip, st1)
+        | St (envl, mem, l, Br) -> St (envl, mem, l, Continue)
+        | Cmd(_, (envl, mem, l, Br)) -> St (envl, mem, l, Continue)
         | St st1 -> Cmd(Repeat(c), st1)
         | Cmd(c', st1) -> Cmd(Seq(c', Repeat(c)), st1)
       )
       | Decl(dv, c) ->
           let (e', l') = sem_decl_dv (topenv st, getloc st) dv in
-          let st' = (e'::(getenv st), getmem st, l') in
+          let st' = (e'::(getenv st), getmem st, l', Continue) in
           Cmd(Block(c), st')
 
       | Block(c) -> (match trace1_cmd (Cmd(c, st)) with
              Cmd(c', st1) -> Cmd(Block(c'), st1)
-            | St st1
-            | Br st1 -> St(popenv st, getmem st1, getloc st1)
+            | St st1 -> St(popenv st, getmem st1, getloc st1, Continue)
             )
       
       | Call_proc(f, Pa(Const(n))) -> (match topenv st f with
@@ -219,7 +220,7 @@ and trace1_cmd = function
                  let l = getloc st in
                  let (e', l') = sem_decl_dv (topenv st, l) (Var_decl(x)) in
                  let mem' = bind (getmem st) l n in 
-                 Cmd(Block(c), (e'::getenv st, mem', l'))
+                 Cmd(Block(c), (e'::getenv st, mem', l', Continue))
                  
             | Ref x -> raise (ConstByRef (x, n)) 
           )
@@ -235,7 +236,7 @@ and trace1_cmd = function
             | Ref x ->
               let lx = topenv st z in 
               let e' = bind (topenv st) x lx in 
-              Cmd(Block(c), (e'::getenv st, getmem st, getloc st))
+              Cmd(Block(c), (e'::getenv st, getmem st, getloc st, Continue))
           )
           | _ -> raise (TypeError "Cannot call a non callable object") 
       )
@@ -257,4 +258,4 @@ let rec trace_rec (n : int) t =
 let trace n (Prog(dv, dp, c)) =
   let (e,l) = sem_decl_dv (botenv,0) dv in
   let e' = sem_decl_dp e dp in
-  trace_rec n (Cmd(c,([e'],botmem,l)))
+  trace_rec n (Cmd(c,([e'],botmem,l, Continue)))
