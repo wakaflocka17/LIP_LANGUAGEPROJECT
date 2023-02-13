@@ -16,73 +16,6 @@ let parse (s : string) : program =
   ast
 ;;
 
-(*
-(******************************************************************************)
-(*                       Big-step semantics of expressions                    *)
-(******************************************************************************)
-
-let rec eval_expr st = function
-|  True -> Bool true
-|  False -> Bool false
-|  Const n -> Int n
-|  Var x -> apply st x
-| Not(e) -> 
-  let v = eval_expr st e in
-  (match v with
-  | Bool b -> Bool (not b)
-  | _ -> raise (TypeError "Not"))
-|  And(e1, e2) -> 
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Bool b1, Bool b2 -> Bool (b1 && b2)
-  | _ -> raise (TypeError "And"))
-|  Or(e1, e2) ->
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Bool b1, Bool b2 -> Bool (b1 || b2)
-  | _ -> raise (TypeError "Or"))
-|  Add(e1, e2) ->
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Int n1, Int n2 -> Int (n1 + n2)
-  | _ -> raise (TypeError "Add"))
-|  Sub(e1, e2) ->
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Int n1, Int n2 -> Int (n1 - n2)
-  | _ -> raise (TypeError "Sub"))
-|  Mul(e1, e2) ->
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Int n1, Int n2 -> Int (n1 * n2)
-  | _ -> raise (TypeError "Mul"))
-|  Eq(e1, e2) ->
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Int n1, Int n2 -> Bool (n1 = n2)
-  | Bool b1, Bool b2 -> Bool (b1 = b2)
-  | _ -> raise (TypeError "Eq"))
-| Leq(e1, e2) ->
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Int n1, Int n2 -> Bool (n1 <= n2)
-  | _ -> raise (TypeError "Leq"))
-| Array(e1, e2) ->
-  let v1 = eval_expr st e1 in
-  let v2 = eval_expr st e2 in
-  (match v1, v2 with
-  | Int n1, Int n2 -> Array (n1, n2)
-  | _ -> raise (TypeError "Array"))
-;;
-*)
-
 (******************************************************************************)
 (*                      Small-step semantics of commands                      *)
 (******************************************************************************)
@@ -99,15 +32,6 @@ let rec sem_decl_dv (e,l) = function
   | Array_decl(a, dim) -> let e' = bind e a (IArr (l, dim)) in (e', l+dim)
   | Seq_dv(dv1, dv2) -> 
       let (e', l') = sem_decl_dv (e, l) dv1 in sem_decl_dv (e', l') dv2
-
-let rec sem_decl_dv_spec (e, l) lmem d = 
-  if l = lmem then sem_decl_dv (e, l) d
-  else match d with
-  Nullvar -> (e,l)
-  | Var_decl(x) ->  let e' = bind e x (IVar lmem) in (e',l)
-  | Array_decl(a, dim) -> let e' = bind e a (IArr (lmem, dim)) in (e', l)
-  | Seq_dv(dv1, dv2) -> 
-      let (e', l') = sem_decl_dv_spec (e, l) lmem dv1 in sem_decl_dv_spec (e', l') lmem dv2
 
 
 let rec sem_decl_dp e = function
@@ -146,26 +70,6 @@ let rec trace1_expr st = function
   | Leq(e1,e2) -> let (e1',st') = trace1_expr st e1 in (Leq(e1',e2),st')
   | _ -> raise NoRuleApplies
 
-  
-(*Utils functions, might not need them
-and trace_rec_expr st e = try
-  let (e', st') = trace1_expr st e
-  in e::(trace_rec_expr st' e')
-with NoRuleApplies -> [e]
-
-and get_last_trace t = match t with
-  | [] -> failwith "No trace avaiable"
-  | t'::[] -> t'
-  | t'::l -> get_last_trace l
-
-and get_expr_val st e =
-  let t = trace_rec_expr st e in  
-  let value = get_last_trace t in 
-  match value with
-    | Const(n) -> n
-    | _ -> failwith "The expression does not evaluate correctly"
-*)
-
 and trace1_cmd = function
   | St _ -> raise NoRuleApplies
   | Cmd(c,st) -> match c with
@@ -188,8 +92,7 @@ and trace1_cmd = function
 
 
       | Seq(c1,c2) -> (match trace1_cmd (Cmd(c1,st)) with
-            | St (envl, mem, l, Br) -> St (envl, mem, l, Br)
-            | Cmd(Repeat(c), (envl, mem, l, Br)) -> Cmd(Repeat(c), (envl, mem, l, Br))
+            | St (envl, mem, l, Br)
             | Cmd(_, (envl, mem, l, Br)) -> St (envl, mem, l, Br) 
             | St st1 -> Cmd(c2,st1)
             | Cmd(c1',st1) -> Cmd(Seq(c1',c2),st1))
@@ -198,12 +101,15 @@ and trace1_cmd = function
       | If(False,_,c2) -> Cmd(c2,st)
       | If(e,c1,c2) -> let (e',st') = trace1_expr st e in Cmd(If(e',c1,c2),st')
 
-      |Repeat(c) -> (match trace1_cmd (Cmd(c, st)) with
-        | St (envl, mem, l, Br) -> St (envl, mem, l, Continue)
+      | Repeat(c) ->  trace1_cmd(Cmd(Repeat_exec(c, c), st))
+
+      | Repeat_exec(source_cmd, c) -> (match trace1_cmd (Cmd(c, st)) with
+        | St (envl, mem, l, Br) 
         | Cmd(_, (envl, mem, l, Br)) -> St (envl, mem, l, Continue)
-        | St st1 -> Cmd(Repeat(c), st1)
-        | Cmd(c', st1) -> Cmd(Seq(c', Repeat(c)), st1)
+        | St st' -> Cmd(Repeat_exec(source_cmd, source_cmd), st')
+        | Cmd(c', st') -> Cmd(Repeat_exec(source_cmd, c'), st')
       )
+
       | Decl(dv, c) ->
           let (e', l') = sem_decl_dv (topenv st, getloc st) dv in
           let st' = (e'::(getenv st), getmem st, l', Continue) in

@@ -1,1 +1,0 @@
-../../../../default/test/lip22_bart.ml

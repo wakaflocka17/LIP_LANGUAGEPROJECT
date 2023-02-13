@@ -39,6 +39,7 @@ type cmd =
   | Assign_cell of ide * expr * expr      (* Assigning a expr to an element of an array*)
   | Seq of cmd * cmd 
   | Repeat of cmd
+  | Repeat_exec of cmd * cmd
   | If of expr * cmd * cmd
   | Decl of dv * cmd                     (* Block containing declarations of variables and cmd *)
   | Call_proc of ide * pa                      (* Calling a procedure *)

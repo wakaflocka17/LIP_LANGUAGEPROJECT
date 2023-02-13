@@ -43,6 +43,7 @@ let rec string_of_cmd = function
   | Assign_cell(a, e1, e2) -> a ^ "[" ^ string_of_expr e1 ^ "]:=" ^ string_of_expr e2
   | Seq(c1,c2) -> string_of_cmd c1 ^ "; " ^ string_of_cmd c2
   | Repeat(c) -> "repeat " ^ string_of_cmd c ^ " forever"
+  | Repeat_exec(_, c) -> "repeat " ^ string_of_cmd c ^ " forever"
   | If(e,c1,c2) -> "if " ^ string_of_expr e ^ " then " ^ string_of_cmd c1 ^ " else " ^ string_of_cmd c2
   | Decl(Nullvar, c) -> "{ " ^ string_of_cmd c ^ "}"
   | Decl(d, c) -> "{ " ^ string_of_dv d ^ "; " ^ string_of_cmd c ^ "}"
@@ -152,6 +153,7 @@ and vars_of_cmd = function
   | Assign_cell(x, e1, e2) -> union [x] (union (vars_of_expr e1) (vars_of_expr e2))
   | Seq(c1,c2) -> union (vars_of_cmd c1) (vars_of_cmd c2)
   | Repeat c -> vars_of_cmd c
+  | Repeat_exec(c1, c2) -> union (vars_of_cmd c1) (vars_of_cmd c2)
   | If(e,c1,c2) -> union (vars_of_expr e) (union (vars_of_cmd c1) (vars_of_cmd c2))                 
   | Decl(dv, c) -> union (vars_of_dv dv) (vars_of_cmd c)
   | Call_proc(f, p) -> union [f] (vars_of_pa p) 

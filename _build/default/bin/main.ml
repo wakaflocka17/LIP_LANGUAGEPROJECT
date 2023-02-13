@@ -1,9 +1,7 @@
-
 open Lip22Lib.Types
 open Lip22Lib.Prettyprint
 open Lip22Lib.Main
        
-
 (* read file, and output it to a string *)
 
 let read_file filename =
