@@ -1,1 +1,1 @@
-int x; x:=0; repeat if x<=5 then x:=x+1 else break forever; x:=42
+array a[5];proc f(val x){x[2] := 2}; a[0] := 3; a[1] := 2; a[2] := 1; f(a)

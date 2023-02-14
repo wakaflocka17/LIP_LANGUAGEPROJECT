@@ -66,8 +66,8 @@ let string_of_pf = function
 
 let string_of_env1 s x = match topenv s x with
   | IVar l -> string_of_int l ^ "/" ^ x
-  | IArr (l, dim) -> string_of_int l ^ "[" ^ string_of_int dim ^ "]" ^ x
-  | IProc(pf,c) -> "(" ^ string_of_pf pf ^ ", " ^ string_of_cmd c ^ ")" ^ x
+  | IArr (l, dim) -> "(" ^ string_of_int l ^ ", " ^ string_of_int dim ^ ")/" ^ x
+  | IProc(pf,c) -> "(" ^ string_of_pf pf ^ ", " ^ string_of_cmd c ^ ")/" ^ x
 
     
 let string_of_env (s : state) vars =
